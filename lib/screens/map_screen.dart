@@ -94,19 +94,50 @@ class _MapScreenState extends State<MapScreen> {
             ],
           ),
           Positioned(
-            bottom: 20,
+            bottom: 90,
             right: 20,
             child: Column(
               children: [
                 FloatingActionButton(
+                  mini: true,
                   backgroundColor: Colors.white,
                   foregroundColor: Colors.indigo,
                   onPressed: _showCurrentLocation,
-                  child: Icon(Icons.location_searching_rounded),
+                  child: Icon(
+                    Icons.location_searching_rounded,
+                    color: Colors.red,
+                  ),
                 ),
               ],
             ),
           ),
+          Positioned(
+            bottom: 20,
+            left: 8,
+            right: 8,
+            child: TextButton(
+              onPressed: () {},
+              child: Container(
+                height: 50,
+                child: Center(
+                  child: Text(
+                    'Начать чат в этом месте',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  borderRadius: BorderRadius.circular(
+                    50,
+                  ),
+                ),
+              ),
+            ),
+          )
         ],
       ),
     );
