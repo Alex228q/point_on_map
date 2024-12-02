@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:point_on_map/model/marker_data.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -11,8 +12,11 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
+  final TextEditingController _messageController = TextEditingController();
   final MapController _mapController = MapController();
   LatLng? _myLocation;
+  List<MarkerData> _markerData = [];
+  List<Marker> _markers = [];
 
   Future<Position> _determinePosition() async {
     bool serviceEnabled;
@@ -56,6 +60,72 @@ class _MapScreenState extends State<MapScreen> {
     super.initState();
   }
 
+  void _addMarker(LatLng position, String message) {
+    final markerData = MarkerData(position: position, message: message);
+    _markerData.add(markerData);
+    _markers.add(
+      Marker(
+        point: position,
+        width: 80,
+        height: 80,
+        child: GestureDetector(
+          onTap: () {
+            _mapController.move(position, 16.7);
+          },
+          child: Icon(
+            Icons.location_on,
+            color: Colors.blue,
+            size: 40,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openChatModal(LatLng pointPosition) {
+    showModalBottomSheet(
+      isScrollControlled: true,
+      context: context,
+      builder: (context) {
+        return FractionallySizedBox(
+          heightFactor: 0.8,
+          child: Container(
+            width: double.infinity,
+            child: Column(
+              children: [
+                Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text(
+                    'ПЕЧЯТАЙ В МЕНЯ!!!',
+                    style: TextStyle(
+                      fontSize: 24,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 18),
+                  child: TextField(
+                    controller: _messageController,
+                  ),
+                ),
+                SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () {
+                    _addMarker(pointPosition, _messageController.text);
+                    _messageController.clear();
+                    Navigator.pop(context);
+                  },
+                  child: Text('Save'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -64,6 +134,8 @@ class _MapScreenState extends State<MapScreen> {
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
+              interactionOptions:
+                  InteractionOptions(flags: ~InteractiveFlag.rotate),
               initialZoom: 16.7,
               initialCenter: LatLng(59.444957, 32.026417),
               onPositionChanged: (camera, hasGesture) {
@@ -75,6 +147,7 @@ class _MapScreenState extends State<MapScreen> {
             children: [
               TileLayer(
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.point_on_map.app',
               ),
               if (_myLocation != null)
                 MarkerLayer(
@@ -91,7 +164,29 @@ class _MapScreenState extends State<MapScreen> {
                     ),
                   ],
                 ),
+              MarkerLayer(markers: _markers),
             ],
+          ),
+          Positioned(
+            top: 35,
+            left: 15,
+            right: 15,
+            child: Container(
+              height: 50,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(50),
+              ),
+              child: Center(
+                child: Text(
+                  _myLocation?.toSexagesimal() ?? 'Нет данных о локации',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
           ),
           Positioned(
             bottom: 90,
@@ -116,7 +211,9 @@ class _MapScreenState extends State<MapScreen> {
             left: 8,
             right: 8,
             child: TextButton(
-              onPressed: () {},
+              onPressed: () {
+                _openChatModal(_myLocation!);
+              },
               child: Container(
                 height: 50,
                 child: Center(
@@ -141,5 +238,12 @@ class _MapScreenState extends State<MapScreen> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _mapController.dispose();
+    _messageController.dispose();
+    super.dispose();
   }
 }
