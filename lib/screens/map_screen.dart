@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:point_on_map/model/marker_data.dart';
+import 'package:flutter_map_animations/flutter_map_animations.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -11,9 +12,15 @@ class MapScreen extends StatefulWidget {
   State<MapScreen> createState() => _MapScreenState();
 }
 
-class _MapScreenState extends State<MapScreen> {
+class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
+  bool _isLoadingPosition = false;
   final TextEditingController _messageController = TextEditingController();
-  final MapController _mapController = MapController();
+  late final _animatedMapController = AnimatedMapController(
+    vsync: this,
+    duration: const Duration(milliseconds: 500),
+    curve: Curves.easeInOut,
+    cancelPreviousAnimations: true,
+  );
   LatLng? _myLocation;
   List<MarkerData> _markerData = [];
   List<Marker> _markers = [];
@@ -42,15 +49,22 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   void _showCurrentLocation() async {
+    setState(() {
+      _isLoadingPosition = true;
+    });
     try {
       Position position = await _determinePosition();
       LatLng currentLatLng = LatLng(position.latitude, position.longitude);
-      _mapController.move(currentLatLng, 16.7);
+      _animatedMapController.animateTo(dest: currentLatLng, zoom: 16.7);
       setState(() {
         _myLocation = currentLatLng;
       });
     } catch (e) {
       print(e);
+    } finally {
+      setState(() {
+        _isLoadingPosition = false;
+      });
     }
   }
 
@@ -70,7 +84,7 @@ class _MapScreenState extends State<MapScreen> {
         height: 80,
         child: GestureDetector(
           onTap: () {
-            _mapController.move(position, 16.7);
+            _animatedMapController.animateTo(dest: position, zoom: 16.7);
           },
           child: Icon(
             Icons.location_on,
@@ -132,7 +146,7 @@ class _MapScreenState extends State<MapScreen> {
       body: Stack(
         children: [
           FlutterMap(
-            mapController: _mapController,
+            mapController: _animatedMapController.mapController,
             options: MapOptions(
               interactionOptions:
                   InteractionOptions(flags: ~InteractiveFlag.rotate),
@@ -198,10 +212,17 @@ class _MapScreenState extends State<MapScreen> {
                   backgroundColor: Colors.white,
                   foregroundColor: Colors.indigo,
                   onPressed: _showCurrentLocation,
-                  child: Icon(
-                    Icons.location_searching_rounded,
-                    color: Colors.red,
-                  ),
+                  child: _isLoadingPosition
+                      ? Padding(
+                          padding: EdgeInsets.all(10),
+                          child: CircularProgressIndicator(
+                            color: Colors.red,
+                          ),
+                        )
+                      : Icon(
+                          Icons.location_searching_rounded,
+                          color: Colors.red,
+                        ),
                 ),
               ],
             ),
@@ -242,7 +263,7 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   void dispose() {
-    _mapController.dispose();
+    _animatedMapController.dispose();
     _messageController.dispose();
     super.dispose();
   }
