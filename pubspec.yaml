@@ -11,8 +11,10 @@ dependencies:
     sdk: flutter
   flutter_map: ^7.0.2
   flutter_map_animations: ^0.8.0
+  flutter_secure_storage: ^9.2.2
   geolocator: ^13.0.2
   latlong2: ^0.9.1
+  lottie: ^3.1.3
 
 dev_dependencies:
   flutter_test:
@@ -21,3 +23,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/loading.json
+    - assets/google.png

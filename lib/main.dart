@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:point_on_map/screens/map_screen.dart';
+import 'package:point_on_map/screens/auth_screen.dart';
 
 void main() {
-  runApp(const MainApp());
+  runApp(MainApp());
 }
 
 class MainApp extends StatelessWidget {
-  const MainApp({super.key});
+  MainApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: MapScreen(),
+      home: AuthScreen(),
     );
   }
 }

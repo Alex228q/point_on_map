@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:point_on_map/model/marker_data.dart';
 import 'package:flutter_map_animations/flutter_map_animations.dart';
+import 'package:lottie/lottie.dart' as lottie;
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -68,10 +69,24 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     }
   }
 
+  Future<void> _fetchLocation() async {
+    try {
+      Position position = await _determinePosition();
+      LatLng currentLatLng = LatLng(position.latitude, position.longitude);
+      setState(() {
+        _myLocation = currentLatLng;
+      });
+    } catch (e) {
+      print(e);
+    }
+  }
+
   @override
   void initState() {
-    _showCurrentLocation();
     super.initState();
+    _fetchLocation().then((_) {
+      setState(() {});
+    });
   }
 
   void _addMarker(LatLng position, String message) {
@@ -88,7 +103,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           },
           child: Icon(
             Icons.location_on,
-            color: Colors.blue,
+            color: Colors.green,
             size: 40,
           ),
         ),
@@ -110,9 +125,9 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                 Padding(
                   padding: EdgeInsets.all(16),
                   child: Text(
-                    'ПЕЧЯТАЙ В МЕНЯ!!!',
+                    pointPosition.toSexagesimal(),
                     style: TextStyle(
-                      fontSize: 24,
+                      fontSize: 18,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -143,121 +158,102 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          FlutterMap(
-            mapController: _animatedMapController.mapController,
-            options: MapOptions(
-              interactionOptions:
-                  InteractionOptions(flags: ~InteractiveFlag.rotate),
-              initialZoom: 16.7,
-              initialCenter: LatLng(59.444957, 32.026417),
-              onPositionChanged: (camera, hasGesture) {
-                setState(() {
-                  _myLocation = camera.center;
-                });
-              },
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.point_on_map.app',
-              ),
-              if (_myLocation != null)
-                MarkerLayer(
-                  markers: [
-                    Marker(
-                      width: 80,
-                      height: 80,
-                      point: _myLocation!,
-                      child: Icon(
-                        Icons.location_on,
-                        color: Colors.red,
-                        size: 40,
-                      ),
+      body: _myLocation == null
+          ? Center(
+              child: lottie.LottieBuilder.asset('assets/loading.json'),
+            )
+          : Stack(
+              children: [
+                FlutterMap(
+                  mapController: _animatedMapController.mapController,
+                  options: MapOptions(
+                    interactionOptions:
+                        InteractionOptions(flags: ~InteractiveFlag.rotate),
+                    initialZoom: 16.7,
+                    initialCenter: _myLocation!,
+                    onPositionChanged: (camera, hasGesture) {
+                      setState(() {
+                        _myLocation = camera.center;
+                      });
+                    },
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'com.point_on_map.app',
                     ),
+                    if (_myLocation != null)
+                      MarkerLayer(
+                        markers: [
+                          Marker(
+                            width: 80,
+                            height: 80,
+                            point: _myLocation!,
+                            child: Icon(
+                              Icons.location_on,
+                              color: Colors.red,
+                              size: 40,
+                            ),
+                          ),
+                        ],
+                      ),
+                    MarkerLayer(markers: _markers),
                   ],
                 ),
-              MarkerLayer(markers: _markers),
-            ],
-          ),
-          Positioned(
-            top: 35,
-            left: 15,
-            right: 15,
-            child: Container(
-              height: 50,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(50),
-              ),
-              child: Center(
-                child: Text(
-                  _myLocation?.toSexagesimal() ?? 'Нет данных о локации',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 90,
-            right: 20,
-            child: Column(
-              children: [
-                FloatingActionButton(
-                  mini: true,
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.indigo,
-                  onPressed: _showCurrentLocation,
-                  child: _isLoadingPosition
-                      ? Padding(
-                          padding: EdgeInsets.all(10),
-                          child: CircularProgressIndicator(
+                Positioned(
+                  bottom: 90,
+                  right: 20,
+                  child: FloatingActionButton(
+                    mini: true,
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.indigo,
+                    onPressed: _showCurrentLocation,
+                    child: _isLoadingPosition
+                        ? Padding(
+                            padding: EdgeInsets.all(10),
+                            child: CircularProgressIndicator(
+                              color: Colors.red,
+                              strokeWidth: 3,
+                            ),
+                          )
+                        : Icon(
+                            Icons.location_searching_rounded,
                             color: Colors.red,
                           ),
-                        )
-                      : Icon(
-                          Icons.location_searching_rounded,
-                          color: Colors.red,
-                        ),
+                  ),
                 ),
-              ],
-            ),
-          ),
-          Positioned(
-            bottom: 20,
-            left: 8,
-            right: 8,
-            child: TextButton(
-              onPressed: () {
-                _openChatModal(_myLocation!);
-              },
-              child: Container(
-                height: 50,
-                child: Center(
-                  child: Text(
-                    'Начать чат в этом месте',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                Positioned(
+                  bottom: 20,
+                  left: 8,
+                  right: 8,
+                  child: TextButton(
+                    onPressed: () {
+                      _openChatModal(_myLocation!);
+                    },
+                    child: Container(
+                      height: 50,
+                      child: Center(
+                        child: Text(
+                          'Начать чат в этом месте',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(
+                          50,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.red,
-                  borderRadius: BorderRadius.circular(
-                    50,
-                  ),
-                ),
-              ),
+                )
+              ],
             ),
-          )
-        ],
-      ),
     );
   }
 
