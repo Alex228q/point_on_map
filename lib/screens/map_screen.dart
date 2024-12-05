@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:point_on_map/model/marker_data.dart';
 import 'package:flutter_map_animations/flutter_map_animations.dart';
 import 'package:lottie/lottie.dart' as lottie;
+import 'package:point_on_map/screens/chat_screen.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -25,6 +26,20 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   LatLng? _myLocation;
   List<MarkerData> _markerData = [];
   List<Marker> _markers = [];
+
+  bool _isCurrentLocationInMarkers(
+      LatLng? currentLocation, List<MarkerData> markerDataList) {
+    if (currentLocation == null) return false;
+
+    for (var marker in markerDataList) {
+      if (marker.position.latitude == currentLocation.latitude &&
+          marker.position.longitude == currentLocation.longitude) {
+        return true;
+      }
+    }
+
+    return false;
+  }
 
   Future<Position> _determinePosition() async {
     bool serviceEnabled;
@@ -100,6 +115,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         child: GestureDetector(
           onTap: () {
             _animatedMapController.animateTo(dest: position, zoom: 16.7);
+            if (_isCurrentLocationInMarkers(_myLocation, _markerData)) {}
           },
           child: Icon(
             Icons.location_on,
@@ -111,56 +127,17 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     );
   }
 
-  void _openChatModal(LatLng pointPosition) {
-    showModalBottomSheet(
-      isScrollControlled: true,
-      context: context,
-      builder: (context) {
-        return FractionallySizedBox(
-          heightFactor: 0.8,
-          child: Container(
-            width: double.infinity,
-            child: Column(
-              children: [
-                Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text(
-                    pointPosition.toSexagesimal(),
-                    style: TextStyle(
-                      fontSize: 18,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 18),
-                  child: TextField(
-                    controller: _messageController,
-                  ),
-                ),
-                SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () {
-                    _addMarker(pointPosition, _messageController.text);
-                    _messageController.clear();
-                    Navigator.pop(context);
-                  },
-                  child: Text('Save'),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: _myLocation == null
-          ? Center(
-              child: lottie.LottieBuilder.asset('assets/loading.json'),
+          ? Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+              ),
+              child: Center(
+                child: lottie.LottieBuilder.asset('assets/loading.json'),
+              ),
             )
           : Stack(
               children: [
@@ -223,35 +200,74 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                           ),
                   ),
                 ),
-                Positioned(
-                  bottom: 20,
-                  left: 8,
-                  right: 8,
-                  child: TextButton(
-                    onPressed: () {
-                      _openChatModal(_myLocation!);
-                    },
-                    child: Container(
-                      height: 50,
-                      child: Center(
-                        child: Text(
-                          'Начать чат в этом месте',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                if (!_isCurrentLocationInMarkers(_myLocation, _markerData))
+                  Positioned(
+                    bottom: 20,
+                    left: 8,
+                    right: 8,
+                    child: TextButton(
+                      onPressed: () {
+                        // _openNewChat(_myLocation!);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) {
+                              return ChatScreen();
+                            },
+                          ),
+                        );
+                      },
+                      child: Container(
+                        height: 50,
+                        child: Center(
+                          child: Text(
+                            'Начать чат в этом месте',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(
+                            50,
                           ),
                         ),
                       ),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(
-                          50,
+                    ),
+                  )
+                else
+                  Positioned(
+                    bottom: 20,
+                    left: 8,
+                    right: 8,
+                    child: TextButton(
+                      onPressed: () {
+                        // _openNewChat(_myLocation!);
+                      },
+                      child: Container(
+                        height: 50,
+                        child: Center(
+                          child: Text(
+                            'Присоедиеиться к обсуждению',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(
+                            50,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                )
               ],
             ),
     );
